@@ -262,7 +262,7 @@ function runContestMulti(exam) {
           const thinkNeedText = shouldHideThinkNeed && thinkNow < 2 ? "?" : `${tier.thinkNeed}`;
           const table = `部分分    思考     写代码
 ${tier.score}/100   ${thinkNow}/${thinkNeedText}   ${codeNow}/${tier.codeNeed}`;
-          const successRate = Math.max(0.18, Math.min(0.95, 0.35 + k / 180 + state.team / 260 - state.stress / 420 + tier.score / 400));
+          const successRate = Math.max(0.10, Math.min(0.97, tier.score == 100 ? 0.08 + k * 0.007 + state.team * 0.0015 - state.stress * 0.002 : tier.score >= 75 ? 0.16 + k * 0.0068 + state.team * 0.0015 - state.stress * 0.002 : tier.score >= 50 ? 0.26 + k * 0.0062 + state.team * 0.0015 - state.stress * 0.002 : 0.38 + k * 0.0058 + state.team * 0.0015 - state.stress * 0.002));
 
           showModal({
             title: `${exam.name} 第${idx}题｜目标 ${tier.score}/100`,
@@ -270,7 +270,7 @@ ${tier.score}/100   ${thinkNow}/${thinkNeedText}   ${codeNow}/${tier.codeNeed}`;
 ${table}
 
 当思考和写代码都达标后，会按成功率判定是否拿到该档部分分。`,
-            progress: `预计成功率约 ${Math.round(successRate * 100)}%`,
+            progress: `当前知识点=${k}，预计成功率约 ${Math.round(successRate * 100)}%（知识点越高成功率越高）`,
             options: [
               {
                 label: "思考 +1",
