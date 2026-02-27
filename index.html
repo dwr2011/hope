@@ -3,33 +3,34 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>刘厚朴模拟器：信息竞赛成长记</title>
+  <title>刘厚朴模拟器：竞赛进阶版</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <main class="game">
     <header>
-      <h1>刘厚朴模拟器：信息竞赛成长记</h1>
-      <p class="subtitle">加入偶然事件弹窗、同学互动、信息测试/文化课测试时间点挑战。</p>
+      <h1>刘厚朴模拟器：竞赛进阶版</h1>
+      <p class="subtitle">加入方向训练（DP/数论/图论）、集训、社交与多题部分分比赛（CSP-S/NOIP/NOI）。</p>
     </header>
 
     <section class="stats" aria-label="角色属性">
       <div><span>周数</span><strong id="week">1</strong></div>
+      <div><span>健康</span><strong id="health">100</strong></div>
       <div><span>精力</span><strong id="energy">100</strong></div>
-      <div><span>算法</span><strong id="algo">20</strong></div>
-      <div><span>数理</span><strong id="science">35</strong></div>
-      <div><span>生物知识</span><strong id="bio">50</strong></div>
-      <div><span>同学关系</span><strong id="friends">50</strong></div>
-      <div><span>家庭支持</span><strong id="family">60</strong></div>
       <div><span>压力</span><strong id="stress">15</strong></div>
+      <div><span>DP</span><strong id="dp">15</strong></div>
+      <div><span>数论</span><strong id="nt">12</strong></div>
+      <div><span>图论</span><strong id="graph">14</strong></div>
+      <div><span>文化课</span><strong id="science">35</strong></div>
+      <div><span>社交</span><strong id="social">45</strong></div>
+      <div><span>家庭支持</span><strong id="family">60</strong></div>
       <div><span>竞赛积分</span><strong id="score">0</strong></div>
-      <div><span>阶段目标</span><strong id="goal">基础期</strong></div>
-      <div><span>下一场考试</span><strong id="exam">第6周 信息测试</strong></div>
+      <div><span>下一赛事</span><strong id="exam">第8周 CSP-S</strong></div>
     </section>
 
     <section class="story">
       <h2 id="event-title">新学期开始</h2>
-      <p id="event-text">你叫刘厚朴，高一理科生。爸妈是生物老师，你在信息竞赛与文化课之间做平衡。</p>
+      <p id="event-text">你是刘厚朴，理科生。你要在训练强度、健康、社交和文化课之间找到平衡。</p>
     </section>
 
     <section class="actions" aria-label="行动选择">
@@ -47,7 +48,7 @@
     </section>
   </main>
 
-  <div id="modal" class="modal hidden" role="dialog" aria-modal="true" aria-live="polite">
+  <div id="modal" class="modal hidden" role="dialog" aria-modal="true">
     <div class="modal-card">
       <h3 id="modal-title">事件</h3>
       <p id="modal-text"></p>
