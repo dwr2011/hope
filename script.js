@@ -8,9 +8,14 @@ const initialState = {
   dp: 15,
   nt: 12,
   graph: 14,
+  ds: 13,
+  string: 13,
   science: 35,
   social: 45,
   family: 60,
+  lin: 40,
+  chen: 40,
+  team: 40,
   score: 0,
   exam: "第8周 CSP-S",
   over: false,
@@ -26,9 +31,14 @@ const dom = {
   dp: document.getElementById("dp"),
   nt: document.getElementById("nt"),
   graph: document.getElementById("graph"),
+  ds: document.getElementById("ds"),
+  string: document.getElementById("string"),
   science: document.getElementById("science"),
   social: document.getElementById("social"),
   family: document.getElementById("family"),
+  lin: document.getElementById("lin"),
+  chen: document.getElementById("chen"),
+  team: document.getElementById("team"),
   score: document.getElementById("score"),
   exam: document.getElementById("exam"),
   eventTitle: document.getElementById("event-title"),
@@ -53,13 +63,12 @@ const exams = {
 };
 
 const actions = [
-  { label: "方向训练（弹题）", type: "training_modal" },
-  { label: "基础维护（文化课+轻刷题）", apply: () => ({ science: 8, dp: 3, energy: -8, stress: 2 }), text: "你稳住了基础。" },
-  { label: "社交（和队友交流/散步）", apply: () => ({ social: 10, stress: -7, energy: 6, health: 4 }), text: "你通过社交放松并获得信息。" },
-  { label: "机房高强度训练", apply: () => ({ dp: 7, nt: 7, graph: 7, score: 4, health: -12, energy: -20, stress: 10 }), text: "高强度训练带来明显进步，但透支较大。" },
+  { label: "竞赛训练（弹出题单）", type: "training_modal" },
+  { label: "社交活动（同学线）", type: "social_modal" },
   { label: "集训周（封闭）", type: "camp" },
-  { label: "休整+运动", apply: () => ({ health: 14, energy: 12, stress: -10, social: 4 }), text: "你恢复了身体和状态。" },
-  { label: "请教学长（数论专题）", apply: () => ({ nt: 10, social: 4, energy: -7, stress: 1 }), text: "数论理解明显提升。" },
+  { label: "基础维护（文化课+轻刷题）", apply: () => ({ science: 8, dp: 2, ds: 2, energy: -8, stress: 2 }), text: "你稳住了文化课和基础题感。" },
+  { label: "机房高强度训练", apply: () => ({ dp: 5, nt: 5, graph: 5, ds: 5, string: 5, score: 5, health: -14, energy: -20, stress: 10 }), text: "你全方向冲刺，代价是身体明显透支。" },
+  { label: "休整+运动", apply: () => ({ health: 14, energy: 12, stress: -10, social: 4 }), text: "你恢复了身体和精力。" },
 ];
 
 function clamp(v) { return Math.max(0, Math.min(100, v)); }
@@ -89,46 +98,18 @@ function applyDelta(delta) {
     if (k in state) state[k] = clamp(state[k] + v);
   });
 }
-
 function nextExamText() {
-  const week = Object.keys(exams).map(Number).find((w) => w >= state.week);
-  return week ? `第${week}周 ${exams[week].name}` : "无";
+  const w = Object.keys(exams).map(Number).find((x) => x >= state.week);
+  return w ? `第${w}周 ${exams[w].name}` : "无";
 }
 
 function randomEventChoice() {
-  // 降低频率：30%触发，但增加事件池
-  if (Math.random() > 0.3) return Promise.resolve();
+  if (Math.random() > 0.32) return Promise.resolve();
   const pool = [
-    {
-      title: "同学喊你去打羽毛球",
-      text: "要不要去？",
-      a: { label: "去（社交+恢复）", d: { social: 8, health: 6, stress: -5, dp: -1 } },
-      b: { label: "不去（继续刷题）", d: { dp: 3, stress: 3, social: -4 } },
-    },
-    {
-      title: "班主任提醒你文化课",
-      text: "你要临时做一套题还是坚持训练？",
-      a: { label: "补文化课", d: { science: 7, stress: 4, energy: -5 } },
-      b: { label: "坚持竞赛", d: { dp: 3, nt: 3, science: -2, stress: 2 } },
-    },
-    {
-      title: "队友分享图论板子",
-      text: "今晚花时间研究吗？",
-      a: { label: "研究", d: { graph: 8, energy: -6, stress: 2 } },
-      b: { label: "先休息", d: { health: 6, stress: -4, graph: -1 } },
-    },
-    {
-      title: "家里安排聚餐",
-      text: "去聚餐还是在家训练？",
-      a: { label: "去聚餐", d: { family: 8, social: 5, stress: -4 } },
-      b: { label: "留家训练", d: { dp: 4, family: -5, stress: 3 } },
-    },
-    {
-      title: "轻微感冒",
-      text: "你要硬扛还是休息？",
-      a: { label: "硬扛", d: { dp: 4, nt: 2, health: -10, stress: 5 } },
-      b: { label: "休息", d: { health: 8, energy: 6, dp: -2, stress: -3 } },
-    },
+    { title: "队友约你复盘", text: "晚饭后一起复盘上一场。", a: { l: "去复盘", d: { team: 7, social: 5, dp: 2, stress: -2 } }, b: { l: "自己刷题", d: { dp: 3, nt: 2, team: -4, stress: 2 } } },
+    { title: "林骁发来数据结构题", text: "他问你要不要一起做。", a: { l: "一起做", d: { ds: 6, lin: 8, social: 4, energy: -5 } }, b: { l: "先放着", d: { energy: 4, lin: -3 } } },
+    { title: "陈璇邀请你讲题", text: "班里同学想听字符串专题。", a: { l: "去讲题", d: { string: 5, chen: 8, social: 6, stress: -2 } }, b: { l: "拒绝", d: { string: 2, chen: -5, social: -2 } } },
+    { title: "家里聚餐", text: "爸妈希望你今晚轻松一点。", a: { l: "参加", d: { family: 8, health: 4, stress: -4 } }, b: { l: "继续练", d: { dp: 3, family: -5, stress: 3 } } },
   ];
   const e = pool[Math.floor(Math.random() * pool.length)];
   return new Promise((resolve) => {
@@ -136,8 +117,8 @@ function randomEventChoice() {
       title: `突发事件：${e.title}`,
       text: e.text,
       options: [
-        { label: e.a.label, onClick: () => { applyDelta(e.a.d); pushLog(`事件选择：${e.a.label}`, true); hideModal(); resolve(); } },
-        { label: e.b.label, onClick: () => { applyDelta(e.b.d); pushLog(`事件选择：${e.b.label}`, false); hideModal(); resolve(); } },
+        { label: e.a.l, onClick: () => { applyDelta(e.a.d); pushLog(`事件选择：${e.a.l}`, true); hideModal(); resolve(); } },
+        { label: e.b.l, onClick: () => { applyDelta(e.b.d); pushLog(`事件选择：${e.b.l}`, false); hideModal(); resolve(); } },
       ],
     });
   });
@@ -145,14 +126,18 @@ function randomEventChoice() {
 
 function trainingProblemSet() {
   const bank = [
-    { name: "DP-树形背包", gain: { dp: 7, graph: 2 }, cost: { health: -4, energy: -5, stress: 3 } },
-    { name: "DP-状压", gain: { dp: 8 }, cost: { health: -5, energy: -6, stress: 4 } },
-    { name: "数论-同余与逆元", gain: { nt: 8 }, cost: { health: -4, energy: -5, stress: 3 } },
-    { name: "数论-筛法+莫比乌斯", gain: { nt: 10 }, cost: { health: -7, energy: -8, stress: 6 } },
-    { name: "图论-最短路变形", gain: { graph: 7, dp: 1 }, cost: { health: -4, energy: -5, stress: 3 } },
-    { name: "图论-网络流", gain: { graph: 10 }, cost: { health: -8, energy: -9, stress: 6 } },
+    { name: "树形DP", gainText: "+2DP +1图论", gain: { dp: 2, graph: 1 }, costText: "-2健康 -3精力 +1压力", cost: { health: -2, energy: -3, stress: 1 } },
+    { name: "状压DP", gainText: "+3DP", gain: { dp: 3 }, costText: "-3健康 -4精力 +2压力", cost: { health: -3, energy: -4, stress: 2 } },
+    { name: "逆元与同余", gainText: "+2数论", gain: { nt: 2 }, costText: "-2健康 -3精力 +1压力", cost: { health: -2, energy: -3, stress: 1 } },
+    { name: "筛法优化", gainText: "+3数论 +1数据结构", gain: { nt: 3, ds: 1 }, costText: "-4健康 -5精力 +2压力", cost: { health: -4, energy: -5, stress: 2 } },
+    { name: "最短路变形", gainText: "+2图论 +1数据结构", gain: { graph: 2, ds: 1 }, costText: "-2健康 -3精力 +1压力", cost: { health: -2, energy: -3, stress: 1 } },
+    { name: "网络流", gainText: "+3图论 +1DP", gain: { graph: 3, dp: 1 }, costText: "-5健康 -6精力 +3压力", cost: { health: -5, energy: -6, stress: 3 } },
+    { name: "平衡树", gainText: "+3数据结构", gain: { ds: 3 }, costText: "-4健康 -5精力 +2压力", cost: { health: -4, energy: -5, stress: 2 } },
+    { name: "线段树维护", gainText: "+2数据结构 +1DP", gain: { ds: 2, dp: 1 }, costText: "-3健康 -4精力 +2压力", cost: { health: -3, energy: -4, stress: 2 } },
+    { name: "KMP/扩展KMP", gainText: "+3字符串", gain: { string: 3 }, costText: "-3健康 -4精力 +1压力", cost: { health: -3, energy: -4, stress: 1 } },
+    { name: "后缀数组", gainText: "+3字符串 +1数据结构", gain: { string: 3, ds: 1 }, costText: "-5健康 -6精力 +3压力", cost: { health: -5, energy: -6, stress: 3 } },
   ];
-  return bank.sort(() => Math.random() - 0.5).slice(0, 4);
+  return bank.sort(() => Math.random() - 0.5).slice(0, 5);
 }
 
 function runTrainingModal() {
@@ -161,34 +146,31 @@ function runTrainingModal() {
     const maxPicks = 3;
     const set = trainingProblemSet();
 
-    function renderPick() {
+    function draw() {
       showModal({
-        title: "方向训练：本周题单",
-        text: "可选 3 题。难度/收益越高，健康扣得越多。",
-        progress: `已选 ${picks}/${maxPicks}`,
+        title: "竞赛训练题单",
+        text: "你点了竞赛训练。下面是本周题单（每题都有明确加点）。",
+        progress: `已做 ${picks}/${maxPicks}`,
         options: [
           ...set.map((q) => ({
-            label: `${q.name}（+方向，-健康）`,
+            label: `${q.name}｜${q.gainText}｜${q.costText}`,
             onClick: () => {
               applyDelta(q.gain);
               applyDelta(q.cost);
-              const gainSum = (q.gain.dp || 0) + (q.gain.nt || 0) + (q.gain.graph || 0);
-              state.score = clamp(state.score + Math.round(gainSum / 4));
+              state.score = clamp(state.score + 2);
               picks += 1;
-              pushLog(`完成训练题：${q.name}`, true);
+              pushLog(`训练：${q.name}（${q.gainText}）`, true);
               if (picks >= maxPicks) {
                 hideModal();
                 resolve();
-              } else {
-                renderPick();
-              }
+              } else draw();
             },
           })),
           {
-            label: "提前收工（保健康）",
+            label: "今天到此为止（保健康）",
             onClick: () => {
-              applyDelta({ health: 3, stress: -2 });
-              pushLog("你提前收工，保留了体力。", true);
+              applyDelta({ health: 4, stress: -2 });
+              pushLog("你适时收手，避免过载。", true);
               hideModal();
               resolve();
             },
@@ -196,8 +178,22 @@ function runTrainingModal() {
         ],
       });
     }
+    draw();
+  });
+}
 
-    renderPick();
+function runSocialModal() {
+  return new Promise((resolve) => {
+    showModal({
+      title: "社交活动",
+      text: "不是简单+社交，而是走不同人物线。",
+      options: [
+        { label: "找林骁讨论数论（+关系 +数论）", onClick: () => { applyDelta({ lin: 10, nt: 4, social: 5, energy: -4, stress: -1 }); pushLog("你和林骁深入讨论了数论。", true); hideModal(); resolve(); } },
+        { label: "帮陈璇讲字符串（+关系 +字符串）", onClick: () => { applyDelta({ chen: 10, string: 4, social: 6, energy: -4, stress: -1 }); pushLog("你帮陈璇讲了字符串专题。", true); hideModal(); resolve(); } },
+        { label: "和队友打模拟赛（+队伍 +多方向）", onClick: () => { applyDelta({ team: 10, dp: 2, ds: 2, graph: 2, social: 5, health: -2, energy: -6 }); pushLog("你和队友完成了一次高质量联训。", true); hideModal(); resolve(); } },
+        { label: "参加班级活动（大幅减压）", onClick: () => { applyDelta({ social: 8, stress: -7, health: 5, science: 2 }); pushLog("你通过班级活动恢复了心态。", true); hideModal(); resolve(); } },
+      ],
+    });
   });
 }
 
@@ -205,81 +201,64 @@ function runCamp() {
   return new Promise((resolve) => {
     showModal({
       title: "集训周",
-      text: "你进入封闭集训：可以选择主攻方向。",
+      text: "选择主攻方向（收益高，消耗也高）。",
       options: [
-        { label: "DP集训", onClick: () => { applyDelta({ dp: 14, nt: 4, graph: 4, health: -10, energy: -14, stress: 8, score: 5 }); pushLog("完成DP集训。", true); hideModal(); resolve(); } },
-        { label: "数论集训", onClick: () => { applyDelta({ nt: 16, dp: 3, graph: 2, health: -11, energy: -14, stress: 8, score: 5 }); pushLog("完成数论集训。", true); hideModal(); resolve(); } },
-        { label: "图论集训", onClick: () => { applyDelta({ graph: 16, dp: 3, nt: 2, health: -11, energy: -14, stress: 8, score: 5 }); pushLog("完成图论集训。", true); hideModal(); resolve(); } },
-        { label: "均衡集训", onClick: () => { applyDelta({ dp: 8, nt: 8, graph: 8, health: -12, energy: -16, stress: 9, score: 6 }); pushLog("完成均衡集训。", true); hideModal(); resolve(); } },
+        { label: "DP集训（+10DP +3数据结构，-10健康）", onClick: () => { applyDelta({ dp: 10, ds: 3, health: -10, energy: -12, stress: 7, score: 5 }); pushLog("完成DP集训。", true); hideModal(); resolve(); } },
+        { label: "数论集训（+11数论 +2DP，-10健康）", onClick: () => { applyDelta({ nt: 11, dp: 2, health: -10, energy: -12, stress: 7, score: 5 }); pushLog("完成数论集训。", true); hideModal(); resolve(); } },
+        { label: "图论+数据结构集训（+8图论 +8数据结构，-11健康）", onClick: () => { applyDelta({ graph: 8, ds: 8, health: -11, energy: -13, stress: 8, score: 6 }); pushLog("完成图论+数据结构集训。", true); hideModal(); resolve(); } },
+        { label: "字符串专项集训（+10字符串 +4数据结构，-10健康）", onClick: () => { applyDelta({ string: 10, ds: 4, health: -10, energy: -12, stress: 7, score: 5 }); pushLog("完成字符串专项集训。", true); hideModal(); resolve(); } },
       ],
     });
   });
 }
 
+function contestPower() {
+  return state.dp * 0.2 + state.nt * 0.2 + state.graph * 0.2 + state.ds * 0.2 + state.string * 0.2 + state.energy * 0.1 + state.team * 0.05 - state.stress * 0.25;
+}
+
 function runContestMulti(exam) {
   return new Promise((resolve) => {
     let idx = 1;
-    let totalScore = 0;
-
-    function solveOne() {
+    let total = 0;
+    function step() {
       if (idx > exam.problems) {
         hideModal();
-        resolve(totalScore);
+        resolve(total);
         return;
       }
-      const strength = state.dp * 0.35 + state.nt * 0.3 + state.graph * 0.35 + state.energy * 0.12 + state.social * 0.08 - state.stress * 0.25;
+      const p = contestPower();
       showModal({
         title: `${exam.name} - 第${idx}题`,
-        text: "每题可拿部分分：稳拿部分分或冲满分。",
-        progress: `当前总分：${totalScore} / ${exam.problems * 100}`,
+        text: "每题都可拿部分分：稳拿部分分，或冲高分。",
+        progress: `当前总分 ${total}/${exam.problems * 100}`,
         options: [
-          {
-            label: "稳拿部分分（20~70）",
-            onClick: () => {
-              const part = Math.max(20, Math.min(70, Math.round(strength * 0.6 + Math.random() * 25)));
-              totalScore += part;
-              applyDelta({ energy: -4, stress: 1 });
-              idx += 1;
-              solveOne();
-            },
-          },
-          {
-            label: "冲满分（波动大）",
-            onClick: () => {
-              const full = Math.round(strength + (Math.random() - 0.35) * 45);
-              const gained = Math.max(0, Math.min(100, full));
-              totalScore += gained;
-              applyDelta({ energy: -7, health: -3, stress: 4 });
-              idx += 1;
-              solveOne();
-            },
-          },
+          { label: "稳拿部分分（30~70）", onClick: () => { total += Math.max(30, Math.min(70, Math.round(p * 0.5 + Math.random() * 25))); applyDelta({ energy: -4, stress: 1 }); idx += 1; step(); } },
+          { label: "冲高分（0~100，波动）", onClick: () => { total += Math.max(0, Math.min(100, Math.round(p + (Math.random() - 0.35) * 45))); applyDelta({ energy: -7, health: -3, stress: 4 }); idx += 1; step(); } },
         ],
       });
     }
-
-    solveOne();
+    step();
   });
 }
 
 function runSchoolMulti(exam) {
   return new Promise((resolve) => {
-    let i = 1;
+    let idx = 1;
     let total = 0;
     function step() {
-      if (i > exam.problems) {
+      if (idx > exam.problems) {
         hideModal();
         resolve(total);
         return;
       }
-      const p = state.science * 0.7 + state.energy * 0.15 + state.family * 0.1 - state.stress * 0.25;
+      const p = state.science * 0.7 + state.energy * 0.15 + state.family * 0.1 - state.stress * 0.2;
       showModal({
-        title: `${exam.name} - 第${i}科`,
-        text: "先审题拿稳分，或冲高分。",
-        progress: `当前总分：${total}/${exam.problems * 100}`,
+        title: `${exam.name} - 第${idx}科`,
+        text: "稳答或冲刺。",
+        progress: `当前总分 ${total}/${exam.problems * 100}`,
         options: [
-          { label: "稳答", onClick: () => { total += Math.max(30, Math.min(75, Math.round(p * 0.8 + Math.random() * 15))); applyDelta({ energy: -3, stress: 1 }); i += 1; step(); } },
-          { label: "冲刺", onClick: () => { total += Math.max(10, Math.min(100, Math.round(p + (Math.random() - 0.4) * 30))); applyDelta({ energy: -6, stress: 3 }); i += 1; step(); } },
+          { label: "稳答（40~75）", onClick: () => { total += Math.max(40, Math.min(75, Math.round(p * 0.75 + Math.random() * 10))); applyDelta({ energy: -3, stress: 1 }); idx += 1; step(); } },
+          { label: "冲刺（10~100）", onClick: () => { total += Math.max(10, Math.min(100, Math.round(p + (Math.random() - 0.4) * 30))); applyDelta({ energy: -6, stress: 3 }); idx += 1; step(); } },
         ],
       });
     }
@@ -291,49 +270,43 @@ async function runExamIfNeeded() {
   const exam = exams[state.week];
   if (!exam) return;
 
-  let score = 0;
   if (exam.type === "contest_multi") {
-    score = await runContestMulti(exam);
-    const normalized = Math.round(score / exam.problems);
-    if (normalized >= 70) {
-      applyDelta({ score: 14, dp: 3, nt: 3, graph: 3, social: 2 });
-      pushLog(`${exam.name}发挥优秀（均分${normalized}）。`, true);
+    const score = await runContestMulti(exam);
+    const avg = Math.round(score / exam.problems);
+    if (avg >= 70) {
+      applyDelta({ score: 14, dp: 2, nt: 2, graph: 2, ds: 2, string: 2, social: 2 });
+      pushLog(`${exam.name}高分（均分${avg}），部分分策略执行很稳。`, true);
       dom.eventTitle.textContent = `🏅 ${exam.name}高分`;
-      dom.eventText.textContent = "你通过多题部分分策略打出了高分。";
-    } else if (normalized >= 45) {
-      applyDelta({ score: 7, dp: 1, nt: 1, graph: 1 });
-      pushLog(`${exam.name}中等发挥（均分${normalized}）。`, true);
+      dom.eventText.textContent = "多题部分分策略非常有效。";
+    } else if (avg >= 45) {
+      applyDelta({ score: 7, dp: 1, nt: 1, graph: 1, ds: 1, string: 1 });
+      pushLog(`${exam.name}中等（均分${avg}）。`, true);
       dom.eventTitle.textContent = `📈 ${exam.name}一般`;
-      dom.eventText.textContent = "你拿到了不少部分分，但还有提升空间。";
+      dom.eventText.textContent = "拿到部分分，但冲击力还差一点。";
     } else {
       applyDelta({ stress: 10, family: -5, score: -2 });
-      pushLog(`${exam.name}失利（均分${normalized}）。`, false);
+      pushLog(`${exam.name}失利（均分${avg}）。`, false);
       dom.eventTitle.textContent = `⚠️ ${exam.name}失利`;
-      dom.eventText.textContent = "本次比赛节奏混乱，需要复盘。";
+      dom.eventText.textContent = "节奏和体能出了问题。";
     }
     return;
   }
 
-  score = await runSchoolMulti(exam);
+  const score = await runSchoolMulti(exam);
   const avg = Math.round(score / exam.problems);
   if (avg >= 65) {
     applyDelta({ score: 6, science: 4, family: 4 });
-    pushLog(`${exam.name}文化课稳定（均分${avg}）。`, true);
+    pushLog(`${exam.name}稳定（均分${avg}）。`, true);
   } else {
     applyDelta({ stress: 8, family: -4 });
-    pushLog(`${exam.name}文化课波动（均分${avg}）。`, false);
+    pushLog(`${exam.name}波动（均分${avg}）。`, false);
   }
 }
 
 async function handleAction(action) {
-  if (action.type === "training_modal") {
-    await runTrainingModal();
-    return;
-  }
-  if (action.type === "camp") {
-    await runCamp();
-    return;
-  }
+  if (action.type === "training_modal") return runTrainingModal();
+  if (action.type === "social_modal") return runSocialModal();
+  if (action.type === "camp") return runCamp();
   applyDelta(action.apply());
   pushLog(action.text, true);
 }
@@ -349,28 +322,26 @@ function checkEnding() {
   if (state.health <= 0 || state.energy <= 0 || state.stress >= 100) {
     state.over = true;
     dom.eventTitle.textContent = "⚠️ 状态崩盘";
-    dom.eventText.textContent = "训练强度超出承受，必须停下来恢复。";
-    pushLog("由于健康/精力/压力失衡，本局结束。", false);
+    dom.eventText.textContent = "强度超负荷，需要停下来。";
+    pushLog("健康/精力/压力失衡，提前结束。", false);
   }
-
   if (!state.over && state.week > TOTAL_WEEKS) {
     state.over = true;
-    const final = state.score * 0.35 + (state.dp + state.nt + state.graph) * 0.25 + state.science * 0.15 + state.social * 0.1 + state.health * 0.1 - state.stress * 0.2;
-    if (final >= 85) {
-      dom.eventTitle.textContent = "🎉 顶级结局：NOI冲线成功";
-      dom.eventText.textContent = "你在方向训练、部分分策略、社交支持和健康管理上都做到极致。";
-      pushLog("结局：冲线成功。", true);
-    } else if (final >= 60) {
+    const final = state.score * 0.3 + (state.dp + state.nt + state.graph + state.ds + state.string) * 0.25 + (state.lin + state.chen + state.team) * 0.08 + state.health * 0.08 + state.science * 0.12 - state.stress * 0.2;
+    if (final >= 88) {
+      dom.eventTitle.textContent = "🎉 顶级结局：NOI冲线";
+      dom.eventText.textContent = "你的方向训练和社交协作都达到了高水平。";
+      pushLog("结局：NOI冲线成功。", true);
+    } else if (final >= 62) {
       dom.eventTitle.textContent = "🙂 稳健结局";
-      dom.eventText.textContent = "你打下了扎实基础，下一年仍有大幅提升空间。";
+      dom.eventText.textContent = "你形成了不错的训练体系。";
       pushLog("结局：稳步成长。", true);
     } else {
       dom.eventTitle.textContent = "🛠️ 反思结局";
-      dom.eventText.textContent = "你需要重新平衡训练强度与健康、社交。";
+      dom.eventText.textContent = "需要重建节奏，尤其是健康和社交协作。";
       pushLog("结局：需要复盘。", false);
     }
   }
-
   if (state.over) dom.actionButtons.innerHTML = "";
 }
 
@@ -399,7 +370,7 @@ function restart() {
   dom.log.innerHTML = "";
   hideModal();
   dom.eventTitle.textContent = "新学期开始";
-  dom.eventText.textContent = "尝试通过方向训练+部分分策略，冲击CSP-S/NOIP/NOI。";
+  dom.eventText.textContent = "点“竞赛训练（弹出题单）”会看到每题明确加点，比如 +2DP、+2数论。";
   render();
   renderActions();
 }
