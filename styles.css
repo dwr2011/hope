@@ -18,7 +18,7 @@ body {
 }
 
 .game {
-  max-width: 920px;
+  max-width: 1040px;
   margin: 24px auto;
   padding: 20px;
 }
@@ -28,7 +28,7 @@ header h1 { margin-bottom: 6px; }
 
 .stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 10px;
   margin: 18px 0;
 }
@@ -80,7 +80,7 @@ button:hover {
 }
 
 #log {
-  max-height: 220px;
+  max-height: 280px;
   overflow: auto;
   padding-left: 18px;
 }
