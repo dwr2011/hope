@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>刘厚朴模拟器：信息竞赛成长记</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="game">
+    <header>
+      <h1>刘厚朴模拟器：信息竞赛成长记</h1>
+      <p class="subtitle">加入偶然事件弹窗、同学互动、信息测试/文化课测试时间点挑战。</p>
+    </header>
+
+    <section class="stats" aria-label="角色属性">
+      <div><span>周数</span><strong id="week">1</strong></div>
+      <div><span>精力</span><strong id="energy">100</strong></div>
+      <div><span>算法</span><strong id="algo">20</strong></div>
+      <div><span>数理</span><strong id="science">35</strong></div>
+      <div><span>生物知识</span><strong id="bio">50</strong></div>
+      <div><span>同学关系</span><strong id="friends">50</strong></div>
+      <div><span>家庭支持</span><strong id="family">60</strong></div>
+      <div><span>压力</span><strong id="stress">15</strong></div>
+      <div><span>竞赛积分</span><strong id="score">0</strong></div>
+      <div><span>阶段目标</span><strong id="goal">基础期</strong></div>
+      <div><span>下一场考试</span><strong id="exam">第6周 信息测试</strong></div>
+    </section>
+
+    <section class="story">
+      <h2 id="event-title">新学期开始</h2>
+      <p id="event-text">你叫刘厚朴，高一理科生。爸妈是生物老师，你在信息竞赛与文化课之间做平衡。</p>
+    </section>
+
+    <section class="actions" aria-label="行动选择">
+      <h3>本周行动（每周选 1 项）</h3>
+      <div id="action-buttons"></div>
+    </section>
+
+    <section class="log-wrap">
+      <h3>成长日志</h3>
+      <ul id="log"></ul>
+    </section>
+
+    <section class="controls">
+      <button id="restart">重新开始</button>
+    </section>
+  </main>
+
+  <div id="modal" class="modal hidden" role="dialog" aria-modal="true" aria-live="polite">
+    <div class="modal-card">
+      <h3 id="modal-title">事件</h3>
+      <p id="modal-text"></p>
+      <div id="modal-progress" class="modal-progress"></div>
+      <div id="modal-actions" class="modal-actions"></div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
