@@ -264,16 +264,17 @@ function runCamp() {
 function knowledgeMap() { return { dp: state.dp, nt: state.nt, graph: state.graph, ds: state.ds, string: state.string }; }
 
 function buildContestTiers() {
-  const useThree = Math.random() < 0.5;
-  const scores = useThree ? [10, 50, 100] : [25, 50, 75, 100];
-  return scores.map((score) => {
-    let thinkNeed = 0;
-    let codeNeed = 0;
-    if (score <= 15) { thinkNeed = 3; codeNeed = 3; }
-    else if (score <= 30) { thinkNeed = 4; codeNeed = 4; }
-    else if (score <= 55) { thinkNeed = 8; codeNeed = 8; }
-    else if (score <= 80) { thinkNeed = 10; codeNeed = 10; }
-    else { thinkNeed = 12; codeNeed = 12; }
+  const pool = [10, 20, 25, 30, 40, 50, 60, 70, 75, 85, 100];
+  const tierCount = 3 + Math.floor(Math.random() * 2);
+  const picks = [...pool].sort(() => Math.random() - 0.5).slice(0, tierCount - 1);
+  const scores = [...new Set([...picks, 100])].sort((a, b) => a - b);
+
+  return scores.map((score, i) => {
+    const level = i + 1;
+    const thinkBase = Math.max(2, Math.round(score / 18));
+    const codeBase = Math.max(2, Math.round(score / 17));
+    const thinkNeed = Math.max(level + 1, Math.min(14, thinkBase + Math.floor(Math.random() * 4) - 1));
+    const codeNeed = Math.max(level + 1, Math.min(14, codeBase + Math.floor(Math.random() * 4) - 1));
     return { score, thinkNeed, codeNeed };
   });
 }
@@ -295,13 +296,14 @@ function runContestMulti(exam) {
       const k = knowledgeMap()[topic];
       const topicName = { dp: "DP", nt: "数论", graph: "图论", ds: "数据结构", string: "字符串" }[topic];
       const tiers = buildContestTiers();
+      const tierSummary = tiers.map((t) => `${t.score}/100(${t.thinkNeed}/${t.codeNeed})`).join("，");
 
       const chooseTier = () => showModal({
         title: `${exam.name} 第${idx}题（${topicName}）`,
         text: "先选目标部分分档位，再通过“思考/写代码”完成对应次数。",
-        progress: `当前总分 ${total}/${exam.problems * 100}`,
+        progress: `当前总分 ${total}/${exam.problems * 100}｜本题档位(思考/代码)：${tierSummary}`,
         options: tiers.map((t) => ({
-          label: `${t.score}/100 档`,
+          label: `${t.score}/100｜思考${t.thinkNeed}｜代码${t.codeNeed}`,
           onClick: () => runTier(t),
         })),
       });
@@ -309,37 +311,90 @@ function runContestMulti(exam) {
       const runTier = (tier) => {
         let thinkNow = 0;
         let codeNow = 0;
+        let timeLeft = tier.thinkNeed + tier.codeNeed + 2 + Math.floor(Math.random() * 2);
 
         const weak = k < 35;
         const shouldHideThinkNeed = weak && tier.score >= 75;
+
+        const settleProblem = (autoDone = false) => {
+          const thinkOk = thinkNow >= tier.thinkNeed;
+          const codeOk = codeNow >= tier.codeNeed;
+
+          if (thinkOk && codeOk) {
+            total += tier.score;
+            pushLog(`第${idx}题完成，拿到 ${tier.score}/100。`, true);
+            idx += 1;
+            stepProblem();
+            return;
+          }
+
+          if (autoDone || timeLeft <= 0) {
+            const partial = Math.max(0, Math.round(tier.score * (thinkNow + codeNow) / (tier.thinkNeed + tier.codeNeed) * 0.82));
+            total += partial;
+            pushLog(`第${idx}题时间结束，仅拿到 ${partial}/100。`, false);
+            idx += 1;
+            stepProblem();
+            return;
+          }
+
+          pushLog(`第${idx}题提交过早，准备不足。`, false);
+          applyDelta({ stress: 2 });
+          drawTier();
+        };
 
         const drawTier = () => {
           const thinkNeedText = shouldHideThinkNeed && thinkNow < 2 ? "?" : `${tier.thinkNeed}`;
           const table = `部分分    思考     写代码
 ${tier.score}/100   ${thinkNow}/${thinkNeedText}   ${codeNow}/${tier.codeNeed}`;
-          const successRate = Math.max(0.10, Math.min(0.97, tier.score == 100 ? 0.08 + k * 0.007 + state.team * 0.0015 - state.stress * 0.002 : tier.score >= 75 ? 0.16 + k * 0.0068 + state.team * 0.0015 - state.stress * 0.002 : tier.score >= 50 ? 0.26 + k * 0.0062 + state.team * 0.0015 - state.stress * 0.002 : 0.38 + k * 0.0058 + state.team * 0.0015 - state.stress * 0.002));
+          const thinkRate = Math.max(0.12, Math.min(0.96, 0.24 + k * 0.006 + state.team * 0.0012 - state.stress * 0.0021 - (tier.score >= 100 ? 0.15 : tier.score >= 75 ? 0.08 : 0)));
+          const codeRate = Math.max(0.10, Math.min(0.95, 0.22 + k * 0.0062 + state.team * 0.0014 - state.stress * 0.0022 - (tier.score >= 100 ? 0.17 : tier.score >= 75 ? 0.1 : 0)));
+
+          if (timeLeft <= 0) {
+            settleProblem(true);
+            return;
+          }
 
           showModal({
             title: `${exam.name} 第${idx}题｜目标 ${tier.score}/100`,
-            text: `按你说的模式：
+            text: `按你说的模式（时间点有限）：
 ${table}
 
-当思考和写代码都达标后，会按成功率判定是否拿到该档部分分。`,
-            progress: `当前知识点=${k}，预计成功率约 ${Math.round(successRate * 100)}%（知识点越高成功率越高）`,
+时间点剩余：${timeLeft}（每次思考/写代码都 -1）`,
+            progress: `知识点=${k}｜思考成功率≈${Math.round(thinkRate * 100)}%｜写代码成功率≈${Math.round(codeRate * 100)}%`,
             options: [
               {
-                label: "思考 +1",
+                label: "思考（时间-1，成功才+1）",
                 onClick: () => {
-                  thinkNow += 1;
+                  timeLeft -= 1;
+                  if (Math.random() < thinkRate) {
+                    thinkNow += 1;
+                    pushLog(`第${idx}题思考成功（${thinkNow}/${tier.thinkNeed}）。`, true);
+                  } else {
+                    pushLog(`第${idx}题思考未突破。`, false);
+                  }
                   applyDelta({ stress: 1, energy: -1 });
+                  if (thinkNow >= tier.thinkNeed && codeNow >= tier.codeNeed) {
+                    settleProblem(true);
+                    return;
+                  }
                   drawTier();
                 },
               },
               {
-                label: "写代码 +1",
+                label: "写代码（时间-1，成功才+1）",
                 onClick: () => {
-                  codeNow += 1;
+                  timeLeft -= 1;
+                  if (Math.random() < codeRate) {
+                    codeNow += 1;
+                    pushLog(`第${idx}题代码推进成功（${codeNow}/${tier.codeNeed}）。`, true);
+                  } else {
+                    pushLog(`第${idx}题代码尝试失败。`, false);
+                  }
                   applyDelta({ energy: -2, stress: 1, health: -1 });
+                  if (thinkNow >= tier.thinkNeed && codeNow >= tier.codeNeed) {
+                    settleProblem(true);
+                    return;
+                  }
                   drawTier();
                 },
               },
@@ -349,27 +404,7 @@ ${table}
               },
               {
                 label: "提交本题",
-                onClick: () => {
-                  const thinkOk = thinkNow >= tier.thinkNeed;
-                  const codeOk = codeNow >= tier.codeNeed;
-                  if (!(thinkOk && codeOk)) {
-                    pushLog(`第${idx}题提交过早，准备不足。`, false);
-                    applyDelta({ stress: 2 });
-                    drawTier();
-                    return;
-                  }
-
-                  if (Math.random() < successRate) {
-                    total += tier.score;
-                    pushLog(`第${idx}题拿到 ${tier.score}/100 部分分。`, true);
-                  } else {
-                    const fallback = Math.max(0, Math.round(tier.score * 0.4));
-                    total += fallback;
-                    pushLog(`第${idx}题冲档失败，回落到 ${fallback}/100。`, false);
-                  }
-                  idx += 1;
-                  stepProblem();
-                },
+                onClick: () => settleProblem(false),
               },
             ],
           });
