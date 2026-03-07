@@ -78,7 +78,6 @@ const actions = [
   { label: "高强度刷题", apply: () => ({ dp: 4, nt: 4, graph: 4, ds: 4, string: 4, health: -12, energy: -18, stress: 9, score: 4, route: "竞赛冲刺" }), text: "你全方向冲刺但代价很大。" },
   { label: "休整恢复", apply: () => ({ health: 14, energy: 12, stress: -10, social: 4, route: "健康优先" }), text: "你把状态拉了回来。" },
   { label: "校园活动策划", apply: () => ({ social: 8, socialCircle: 6, clubRep: 5, science: 3, stress: -2, route: "社交经营" }), text: "你在活动里积累了人脉和组织力。" },
-  { label: "自习室双线计划", apply: () => ({ dp: 2, science: 5, crush: 4, stress: -1, route: "双线平衡" }), text: "你稳住了竞赛与学业两条线。" },
 ];
 
 const trainingBank = [
@@ -117,7 +116,7 @@ function updateCrushStage() {
 }
 
 function randomEventChoice() {
-  if (Math.random() > 0.32) return Promise.resolve();
+  if (Math.random() > 0.48) return Promise.resolve();
   const pool = [
     {
       t: "感情事件：图书馆借书偶遇",
@@ -144,16 +143,40 @@ function randomEventChoice() {
       b: ["回避冲突", { clubRep: -4, social: -3, stress: -1 }],
     },
     {
+      t: "社交事件：模拟赛复盘分享",
+      x: "大家想听你讲解做题思路。",
+      a: ["上台分享", { social: 6, socialCircle: 6, dp: 2, stress: 1 }],
+      b: ["把机会让给别人", { stress: -2, social: 1 }],
+    },
+    {
+      t: "社交事件：同学临时求助",
+      x: "同学卡在一道图论题，你要不要花时间帮忙？",
+      a: ["帮忙讲清", { social: 7, team: 4, graph: 2, energy: -3 }],
+      b: ["先顾自己", { dp: 2, social: -2 }],
+    },
+    {
       t: "家庭事件：父母谈心",
       x: "家里想了解你的真实压力。",
       a: ["坦诚交流", { family: 8, stress: -6, health: 3 }],
       b: ["敷衍过去", { family: -6, stress: 3 }],
     },
     {
+      t: "家庭事件：家务分担",
+      x: "周末家里比较忙，你是否主动分担？",
+      a: ["主动分担", { family: 7, stress: -2, energy: -2 }],
+      b: ["继续刷题", { dp: 2, nt: 1, family: -3 }],
+    },
+    {
       t: "团队事件：临时集体训练",
       x: "是否加入团队夜训？",
       a: ["加入", { team: 8, graph: 2, ds: 2, energy: -5 }],
       b: ["单练", { dp: 3, team: -4, stress: 2 }],
+    },
+    {
+      t: "突发事件：身体预警",
+      x: "连续高压后你有些不适。",
+      a: ["立刻休息", { health: 8, energy: 5, stress: -5, dp: -1 }],
+      b: ["硬撑训练", { dp: 3, nt: 2, health: -8, stress: 5 }],
     },
   ];
 
@@ -178,7 +201,7 @@ function randomEventChoice() {
           onClick: () => {
             applyDelta(e.a[1]);
             if (e.special === "confession") {
-              const okRate = Math.max(0.3, Math.min(0.92, 0.34 + state.crush / 170 + state.social / 320 + state.socialCircle / 360 - state.stress / 520));
+              const okRate = Math.max(0.45, Math.min(0.96, 0.45 + state.crush / 160 + state.social / 320 + state.socialCircle / 360 - state.stress / 520));
               if (Math.random() < okRate) {
                 applyDelta({ crush: 16, social: 5, stress: -8, romanceEvents: 1 });
                 state.crushStage = "告白成功";
@@ -207,31 +230,69 @@ function fmtDelta(d) {
 
 function runTrainingModal() {
   return new Promise((resolve) => {
-    const set = [...trainingBank].sort(() => Math.random() - 0.5).slice(0, 7);
-    let done = 0;
-    const draw = () => showModal({
-      title: "竞赛训练题单",
-      text: "每题有明确加点，可形成不同训练走线。",
-      progress: `已做 ${done}/3`,
+    const diffCfg = {
+      easy: { name: "基础训练", pick: 5, target: 2, gain: 0.9, cost: 0.75, bonus: 1 },
+      normal: { name: "标准训练", pick: 6, target: 3, gain: 1, cost: 1, bonus: 2 },
+      hard: { name: "高压训练", pick: 7, target: 4, gain: 1.18, cost: 1.2, bonus: 3 },
+    };
+
+    const chooseDiff = () => showModal({
+      title: "竞赛训练难度",
+      text: "先选本周训练难度。难度越高收益越大，但代价也更高。",
       options: [
-        ...set.map(([name, g, c]) => ({ label: `${name}\n  ${fmtDelta(g)}｜${fmtDelta(c)}`, onClick: () => { applyDelta(g); applyDelta(c); applyDelta({ score: 2 }); done += 1; pushLog(`训练：${name}`, true); if (done >= 3) { hideModal(); resolve(); } else draw(); } })),
-        { label: "提前收工", onClick: () => { applyDelta({ health: 4, stress: -2 }); hideModal(); resolve(); } },
+        { label: "基础训练（稳健）", onClick: () => startTraining("easy") },
+        { label: "标准训练（均衡）", onClick: () => startTraining("normal") },
+        { label: "高压训练（高收益高消耗）", onClick: () => startTraining("hard") },
       ],
     });
-    draw();
+
+    const scaleDelta = (d, factor) => {
+      const out = {};
+      Object.entries(d).forEach(([k, v]) => { out[k] = Math.round(v * factor); });
+      return out;
+    };
+
+    const startTraining = (mode) => {
+      const cfg = diffCfg[mode];
+      const set = [...trainingBank].sort(() => Math.random() - 0.5).slice(0, cfg.pick);
+      let done = 0;
+      const draw = () => showModal({
+        title: `竞赛训练题单｜${cfg.name}`,
+        text: "每题收益与代价按难度缩放。",
+        progress: `已做 ${done}/${cfg.target}`,
+        options: [
+          ...set.map(([name, g, c]) => ({
+            label: `${name}
+  ${fmtDelta(scaleDelta(g, cfg.gain))}｜${fmtDelta(scaleDelta(c, cfg.cost))}`,
+            onClick: () => {
+              applyDelta(scaleDelta(g, cfg.gain));
+              applyDelta(scaleDelta(c, cfg.cost));
+              applyDelta({ score: cfg.bonus });
+              done += 1;
+              pushLog(`训练(${cfg.name})：${name}`, true);
+              if (done >= cfg.target) { hideModal(); resolve(); } else draw();
+            },
+          })),
+          { label: "提前收工", onClick: () => { applyDelta({ health: 4, stress: -2 }); hideModal(); resolve(); } },
+        ],
+      });
+      draw();
+    };
+
+    chooseDiff();
   });
 }
 
 function runSocialModal() {
   return new Promise((resolve) => showModal({
-    title: "社交活动（关系重写）",
-    text: "以真实社交场景与感情事件推进，不再使用固定人物槽位。",
+    title: "社交活动（优化版）",
+    text: "社交不再只加数值，部分选项有波动结果。",
     options: [
-      { label: "班级讨论会（+社交圈 +文化课）", onClick: () => { applyDelta({ social: 8, socialCircle: 9, science: 3, energy: -3 }); pushLog("你在讨论会里结识了更多靠谱同学。", true); hideModal(); resolve(); } },
-      { label: "社团项目协作（+社团影响力 +团队）", onClick: () => { applyDelta({ clubRep: 10, team: 5, social: 4, stress: 2 }); pushLog("你推动了社团项目，影响力提升。", true); hideModal(); resolve(); } },
+      { label: "班级讨论会（稳定提升社交圈）", onClick: () => { applyDelta({ social: 7, socialCircle: 8, science: 3, energy: -3 }); pushLog("讨论会让你结识了更多可靠同学。", true); hideModal(); resolve(); } },
+      { label: "社团项目协作（影响力玩法）", onClick: () => { const ok = Math.random() < 0.72; if (ok) { applyDelta({ clubRep: 12, team: 5, social: 4, stress: 1 }); pushLog("项目推进顺利，你在社团影响力明显上升。", true); } else { applyDelta({ clubRep: -3, stress: 3, social: 2 }); pushLog("项目沟通不顺，但你积累了协作经验。", false); } hideModal(); resolve(); } },
+      { label: "公开分享讲题（高回报高压力）", onClick: () => { const ok = Math.random() < 0.68; if (ok) { applyDelta({ social: 9, socialCircle: 6, dp: 2, nt: 2, stress: 2 }); pushLog("你的分享获得认可，社交与竞赛双提升。", true); } else { applyDelta({ social: 2, stress: 5, energy: -2 }); pushLog("分享节奏失误，状态受了点影响。", false); } hideModal(); resolve(); } },
       { label: "操场夜谈（感情事件）", onClick: () => { applyDelta({ crush: 8, romanceEvents: 1, stress: -3, social: 3 }); pushLog("一次真诚夜谈让关系更近一步。", true); hideModal(); resolve(); } },
-      { label: "活动主持尝试（+社交 +抗压）", onClick: () => { applyDelta({ social: 7, socialCircle: 4, stress: 1, science: 2 }); pushLog("你在公开场合表达更自信了。", true); hideModal(); resolve(); } },
-      { label: "安静旁听（小幅社交 +恢复）", onClick: () => { applyDelta({ social: 3, stress: -2, energy: 2 }); pushLog("你保持参与但不过度消耗。", true); hideModal(); resolve(); } },
+      { label: "安静旁听（低风险恢复）", onClick: () => { applyDelta({ social: 3, stress: -2, energy: 3 }); pushLog("你保持参与但不过度消耗。", true); hideModal(); resolve(); } },
     ],
   }));
 }
@@ -251,12 +312,12 @@ function runFamilyModal() {
 
 function runCamp() {
   return new Promise((resolve) => showModal({
-    title: "集训周",
-    text: "不同集训对应不同走线。",
+    title: "信息集训（仅信息学）",
+    text: "集训只做信息方向，难度越高收益越大、代价越重。",
     options: [
-      { label: "算法综合集训（竞赛线）", onClick: () => { applyDelta({ dp: 6, graph: 6, ds: 6, health: -10, energy: -12, stress: 7, score: 6, route: "竞赛冲刺" }); hideModal(); resolve(); } },
-      { label: "数论+字符串集训（专项线）", onClick: () => { applyDelta({ nt: 8, string: 8, health: -10, energy: -12, stress: 7, score: 6, route: "专项突破" }); hideModal(); resolve(); } },
-      { label: "平衡集训（学业+竞赛）", onClick: () => { applyDelta({ dp: 4, nt: 4, science: 5, stress: 3, score: 4, route: "双线平衡" }); hideModal(); resolve(); } },
+      { label: "基础集训（低难）", onClick: () => { applyDelta({ dp: 4, nt: 4, graph: 4, ds: 4, string: 4, score: 4, health: -4, energy: -6, stress: 3, route: "竞赛冲刺" }); pushLog("你完成了基础信息集训。", true); hideModal(); resolve(); } },
+      { label: "强化集训（中难）", onClick: () => { applyDelta({ dp: 6, nt: 6, graph: 6, ds: 6, string: 6, score: 6, health: -7, energy: -9, stress: 5, route: "竞赛冲刺" }); pushLog("你完成了强化信息集训。", true); hideModal(); resolve(); } },
+      { label: "冲刺集训（高难）", onClick: () => { applyDelta({ dp: 9, nt: 9, graph: 9, ds: 9, string: 9, score: 9, health: -12, energy: -14, stress: 8, route: "竞赛冲刺" }); pushLog("你完成了冲刺信息集训，强度极高。", true); hideModal(); resolve(); } },
     ],
   }));
 }
@@ -360,8 +421,8 @@ function runContestMulti(exam) {
           const thinkNeedText = shouldHideThinkNeed && thinkNow < 2 ? "?" : `${tier.thinkNeed}`;
           const table = `部分分    思考     写代码
 ${tier.score}/100   ${thinkNow}/${thinkNeedText}   ${codeNow}/${tier.codeNeed}`;
-          const thinkRate = Math.max(0.12, Math.min(0.96, 0.24 + k * 0.006 + state.team * 0.0012 - state.stress * 0.0021 - (tier.score >= 100 ? 0.15 : tier.score >= 75 ? 0.08 : 0)));
-          const codeRate = Math.max(0.10, Math.min(0.95, 0.22 + k * 0.0062 + state.team * 0.0014 - state.stress * 0.0022 - (tier.score >= 100 ? 0.17 : tier.score >= 75 ? 0.1 : 0)));
+          const thinkRate = Math.max(0.28, Math.min(0.98, 0.34 + k * 0.0066 + state.team * 0.0015 - state.stress * 0.0018 - (tier.score >= 100 ? 0.1 : tier.score >= 75 ? 0.05 : 0)));
+          const codeRate = Math.max(0.26, Math.min(0.97, 0.33 + k * 0.0068 + state.team * 0.0016 - state.stress * 0.0019 - (tier.score >= 100 ? 0.11 : tier.score >= 75 ? 0.06 : 0)));
 
           if (examTimeLeft <= 0) {
             settleProblem(true);
@@ -509,11 +570,11 @@ function checkEnding() {
       dom.eventTitle.textContent = "🏆 竞赛王者线";
       dom.eventText.textContent = "你在高强度路线中完成了竞赛突破。";
       pushLog("结局：竞赛王者线。", true);
-    } else if (final >= 85 && state.route === "双线平衡") {
-      dom.eventTitle.textContent = "🎓 双线学霸线";
-      dom.eventText.textContent = "你在竞赛与学业两线都保持了高水平。";
-      pushLog("结局：双线学霸线。", true);
-    } else if (final >= 80 && state.crushStage === "热恋") {
+    } else if (final >= 85 && state.route === "社交经营") {
+      dom.eventTitle.textContent = "🌟 社交成长线";
+      dom.eventText.textContent = "你在社交资源与学习节奏间建立了稳定循环。";
+      pushLog("结局：社交成长线。", true);
+    } else if (final >= 80 && (state.crushStage === "稳定交往" || state.crushStage === "告白成功")) {
       dom.eventTitle.textContent = "💖 青春圆满线";
       dom.eventText.textContent = "感情、社交与成长节奏形成了良性循环。";
       pushLog("结局：青春圆满线。", true);
