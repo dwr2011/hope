@@ -13,11 +13,12 @@ const initialState = {
   science: 35,
   social: 45,
   family: 60,
-  peerA: 40,
-  peerB: 40,
+  socialCircle: 45,
+  clubRep: 35,
   crush: 20,
-  crushStage: "暗恋中",
+  crushStage: "普通同学",
   team: 40,
+  romanceEvents: 0,
   score: 0,
   exam: "第8周 CSP-S",
   route: "均衡",
@@ -39,8 +40,8 @@ const dom = {
   science: document.getElementById("science"),
   social: document.getElementById("social"),
   family: document.getElementById("family"),
-  peerA: document.getElementById("peerA"),
-  peerB: document.getElementById("peerB"),
+  socialCircle: document.getElementById("socialCircle"),
+  clubRep: document.getElementById("clubRep"),
   crush: document.getElementById("crush"),
   crushStage: document.getElementById("crushStage"),
   team: document.getElementById("team"),
@@ -70,13 +71,13 @@ const exams = {
 
 const actions = [
   { label: "竞赛训练（弹出题单）", type: "training" },
-  { label: "社交活动（人物线）", type: "social" },
+  { label: "社交活动（关系线）", type: "social" },
   { label: "家庭活动（家庭线）", type: "family" },
   { label: "集训周（封闭）", type: "camp" },
   { label: "文化课深耕", apply: () => ({ science: 10, energy: -10, stress: 4 }), text: "你完成了多科专项训练。" },
   { label: "高强度刷题", apply: () => ({ dp: 4, nt: 4, graph: 4, ds: 4, string: 4, health: -12, energy: -18, stress: 9, score: 4, route: "竞赛冲刺" }), text: "你全方向冲刺但代价很大。" },
   { label: "休整恢复", apply: () => ({ health: 14, energy: 12, stress: -10, social: 4, route: "健康优先" }), text: "你把状态拉了回来。" },
-  { label: "校园活动策划", apply: () => ({ social: 8, peerA: 4, peerB: 4, science: 3, stress: -2, route: "社交经营" }), text: "你在活动里积累了人脉和组织力。" },
+  { label: "校园活动策划", apply: () => ({ social: 8, socialCircle: 6, clubRep: 5, science: 3, stress: -2, route: "社交经营" }), text: "你在活动里积累了人脉和组织力。" },
   { label: "自习室双线计划", apply: () => ({ dp: 2, science: 5, crush: 4, stress: -1, route: "双线平衡" }), text: "你稳住了竞赛与学业两条线。" },
 ];
 
@@ -107,21 +108,63 @@ function showModal({ title, text, progress = "", options = [] }) {
 }
 
 function nextExamText() { const w = Object.keys(exams).map(Number).find((n) => n >= state.week); return w ? `第${w}周 ${exams[w].name}` : "无"; }
-function updateCrushStage() { if (state.crush >= 80) state.crushStage = "热恋"; else if (state.crush >= 60) state.crushStage = "互有好感"; else if (state.crush >= 35) state.crushStage = "熟络"; else state.crushStage = "暗恋中"; }
+function updateCrushStage() {
+  if (state.romanceEvents >= 4 && state.crush >= 82) state.crushStage = "稳定交往";
+  else if (state.romanceEvents >= 3 && state.crush >= 68) state.crushStage = "双向暧昧";
+  else if (state.romanceEvents >= 2 && state.crush >= 50) state.crushStage = "关系升温";
+  else if (state.romanceEvents >= 1 && state.crush >= 35) state.crushStage = "熟络同频";
+  else state.crushStage = "普通同学";
+}
 
 function randomEventChoice() {
-  if (Math.random() > 0.3) return Promise.resolve();
+  if (Math.random() > 0.32) return Promise.resolve();
   const pool = [
-    { t: "暗恋事件：走廊偶遇", x: "对方问你周末要不要一起自习。", a: ["答应", { crush: 8, social: 6, stress: -4, energy: -2 }], b: ["婉拒", { dp: 2, crush: -3, stress: 2 }] },
-    { t: "暗恋事件：误会", x: "你们之间产生了误会。", a: ["解释清楚", { crush: 6, social: 2, stress: 1 }], b: ["先冷处理", { crush: -6, stress: 4 }] },
-    { t: "家庭事件：父母谈心", x: "家里想了解你的真实压力。", a: ["坦诚交流", { family: 8, stress: -6, health: 3 }], b: ["敷衍过去", { family: -6, stress: 3 }] },
-    { t: "家庭事件：周末出游", x: "去不去家庭短途出游？", a: ["去", { family: 7, health: 6, energy: 4, dp: -2 }], b: ["留校训练", { dp: 3, nt: 2, family: -5, stress: 2 }] },
-    { t: "校园事件：社团邀请", x: "你被邀请参加跨班项目。", a: ["参加", { social: 7, peerA: 5, science: 2 }], b: ["拒绝", { social: -3, dp: 2 }] },
-    { t: "团队事件：临时集体训练", x: "是否加入团队夜训？", a: ["加入", { team: 8, graph: 2, ds: 2, energy: -5 }], b: ["单练", { dp: 3, team: -4, stress: 2 }] },
+    {
+      t: "感情事件：图书馆借书偶遇",
+      x: "对方把你常看的算法书递了过来，想不想顺势聊几句？",
+      a: ["顺势聊天", { crush: 7, social: 3, stress: -2, romanceEvents: 1 }],
+      b: ["点头离开", { crush: -2, dp: 2 }],
+    },
+    {
+      t: "感情事件：深夜消息",
+      x: "对方问你比赛前会不会紧张。",
+      a: ["认真回复并互相鼓励", { crush: 8, social: 2, stress: -3, romanceEvents: 1 }],
+      b: ["已读不回", { crush: -5, stress: 2 }],
+    },
+    {
+      t: "社交事件：班级协作",
+      x: "班里在组织学科经验分享，是否主动承担？",
+      a: ["主动承担", { social: 8, socialCircle: 7, clubRep: 4, energy: -3 }],
+      b: ["低调旁听", { social: 2, stress: -1 }],
+    },
+    {
+      t: "社交事件：社团策划冲突",
+      x: "活动安排临时撞期，你要不要站出来协调？",
+      a: ["主动协调", { clubRep: 8, socialCircle: 4, stress: 2, science: 2 }],
+      b: ["回避冲突", { clubRep: -4, social: -3, stress: -1 }],
+    },
+    {
+      t: "家庭事件：父母谈心",
+      x: "家里想了解你的真实压力。",
+      a: ["坦诚交流", { family: 8, stress: -6, health: 3 }],
+      b: ["敷衍过去", { family: -6, stress: 3 }],
+    },
+    {
+      t: "团队事件：临时集体训练",
+      x: "是否加入团队夜训？",
+      a: ["加入", { team: 8, graph: 2, ds: 2, energy: -5 }],
+      b: ["单练", { dp: 3, team: -4, stress: 2 }],
+    },
   ];
 
-  if (state.crush >= 62 && state.week >= 10) {
-    pool.push({ t: "表白时机", x: "你感觉时机成熟，是否表白？", a: ["表白", { crush: 8, stress: 6, social: 2 }], b: ["再等等", { crush: 2, stress: -1 }], special: "confession" });
+  if (state.crush >= 60 && state.romanceEvents >= 2 && state.week >= 10) {
+    pool.push({
+      t: "感情事件：表白窗口",
+      x: "几次互动后气氛正好，你决定？",
+      a: ["认真表白", { stress: 5 }],
+      b: ["再相处一段", { crush: 3, stress: -1, romanceEvents: 1 }],
+      special: "confession",
+    });
   }
 
   const e = pool[Math.floor(Math.random() * pool.length)];
@@ -130,15 +173,27 @@ function randomEventChoice() {
       title: `特殊事件：${e.t}`,
       text: e.x,
       options: [
-        { label: e.a[0], onClick: () => {
-          applyDelta(e.a[1]);
-          if (e.special === "confession") {
-            const okRate = Math.max(0.25, Math.min(0.9, 0.35 + state.crush / 160 + state.social / 300 - state.stress / 500));
-            if (Math.random() < okRate) { applyDelta({ crush: 14, stress: -6, social: 4 }); state.crushStage = "表白成功"; pushLog("表白成功，你们开始稳定交往。", true); }
-            else { applyDelta({ crush: -10, stress: 10 }); state.crushStage = "表白受挫"; pushLog("表白受挫，但你选择继续成长。", false); }
-          } else pushLog(`事件选择：${e.a[0]}`, true);
-          hideModal(); res();
-        } },
+        {
+          label: e.a[0],
+          onClick: () => {
+            applyDelta(e.a[1]);
+            if (e.special === "confession") {
+              const okRate = Math.max(0.3, Math.min(0.92, 0.34 + state.crush / 170 + state.social / 320 + state.socialCircle / 360 - state.stress / 520));
+              if (Math.random() < okRate) {
+                applyDelta({ crush: 16, social: 5, stress: -8, romanceEvents: 1 });
+                state.crushStage = "告白成功";
+                pushLog("你勇敢表达并获得回应，关系进入新阶段。", true);
+              } else {
+                applyDelta({ crush: -8, stress: 8 });
+                pushLog("告白没有成功，但你学会了更成熟地面对关系。", false);
+              }
+            } else {
+              pushLog(`事件选择：${e.a[0]}`, true);
+            }
+            hideModal();
+            res();
+          },
+        },
         { label: e.b[0], onClick: () => { applyDelta(e.b[1]); pushLog(`事件选择：${e.b[0]}`, false); hideModal(); res(); } },
       ],
     });
@@ -169,14 +224,14 @@ function runTrainingModal() {
 
 function runSocialModal() {
   return new Promise((resolve) => showModal({
-    title: "社交活动（多线）",
-    text: "可选人物线、感情线、团队线、校园线。",
+    title: "社交活动（关系重写）",
+    text: "以真实社交场景与感情事件推进，不再使用固定人物槽位。",
     options: [
-      { label: "同学A线：专题讨论（+关系 +数论）", onClick: () => { applyDelta({ peerA: 10, nt: 4, social: 5, energy: -4 }); pushLog("你和同学A完成专题讨论。", true); hideModal(); resolve(); } },
-      { label: "同学B线：讲题互助（+关系 +字符串）", onClick: () => { applyDelta({ peerB: 10, string: 4, social: 6, energy: -4 }); pushLog("你和同学B完成讲题互助。", true); hideModal(); resolve(); } },
-      { label: "团队线：模拟赛联训（+默契 +多方向）", onClick: () => { applyDelta({ team: 10, dp: 2, ds: 2, graph: 2, social: 5, energy: -6 }); pushLog("队伍联训后配合提升。", true); hideModal(); resolve(); } },
-      { label: "感情线：约自习（推进关系）", onClick: () => { applyDelta({ crush: 9, social: 4, science: 4, stress: -3 }); pushLog("你们一起自习，关系升温。", true); hideModal(); resolve(); } },
-      { label: "校园线：组织活动（+社交 +文化课）", onClick: () => { applyDelta({ social: 9, science: 3, stress: -2, peerA: 3, peerB: 3 }); pushLog("你在校园活动里收获了影响力。", true); hideModal(); resolve(); } },
+      { label: "班级讨论会（+社交圈 +文化课）", onClick: () => { applyDelta({ social: 8, socialCircle: 9, science: 3, energy: -3 }); pushLog("你在讨论会里结识了更多靠谱同学。", true); hideModal(); resolve(); } },
+      { label: "社团项目协作（+社团影响力 +团队）", onClick: () => { applyDelta({ clubRep: 10, team: 5, social: 4, stress: 2 }); pushLog("你推动了社团项目，影响力提升。", true); hideModal(); resolve(); } },
+      { label: "操场夜谈（感情事件）", onClick: () => { applyDelta({ crush: 8, romanceEvents: 1, stress: -3, social: 3 }); pushLog("一次真诚夜谈让关系更近一步。", true); hideModal(); resolve(); } },
+      { label: "活动主持尝试（+社交 +抗压）", onClick: () => { applyDelta({ social: 7, socialCircle: 4, stress: 1, science: 2 }); pushLog("你在公开场合表达更自信了。", true); hideModal(); resolve(); } },
+      { label: "安静旁听（小幅社交 +恢复）", onClick: () => { applyDelta({ social: 3, stress: -2, energy: 2 }); pushLog("你保持参与但不过度消耗。", true); hideModal(); resolve(); } },
     ],
   }));
 }
@@ -337,7 +392,7 @@ function runSchoolMulti(exam) {
     const step = () => {
       if (i > exam.problems) { hideModal(); resolve(total); return; }
       const s = subs[Math.floor(Math.random() * subs.length)];
-      const p = state.science * 0.75 + state.energy * 0.12 + state.family * 0.08 + state.crush * 0.03 - state.stress * 0.2;
+      const p = state.science * 0.75 + state.energy * 0.12 + state.family * 0.08 + state.crush * 0.03 + state.socialCircle * 0.02 - state.stress * 0.2;
       showModal({
         title: `${exam.name} - ${s}`,
         text: "文化课也有稳答/提分/冲刺三档。",
@@ -396,7 +451,7 @@ function checkEnding() {
   if (!state.over && state.week > TOTAL_WEEKS) {
     state.over = true;
     const contest = (state.dp + state.nt + state.graph + state.ds + state.string) / 5;
-    const relation = (state.peerA + state.peerB + state.team + state.crush) / 4;
+    const relation = (state.social + state.socialCircle + state.clubRep + state.team + state.crush) / 5;
     const final = state.score * 0.3 + contest * 0.24 + relation * 0.14 + state.science * 0.12 + state.family * 0.1 + state.health * 0.1 - state.stress * 0.2;
 
     if (final >= 90 && state.route === "竞赛冲刺") {
