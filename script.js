@@ -284,11 +284,17 @@ function runContestMulti(exam) {
     let idx = 1;
     let total = 0;
     const topics = ["dp", "nt", "graph", "ds", "string"];
+    let examTimeLeft = exam.problems * 18;
+
+    const finishExam = () => {
+      hideModal();
+      resolve(total);
+    };
 
     const stepProblem = () => {
-      if (idx > exam.problems) {
-        hideModal();
-        resolve(total);
+      if (idx > exam.problems || examTimeLeft <= 0) {
+        if (examTimeLeft <= 0) pushLog(`${exam.name}时间耗尽，考试提前结束。`, false);
+        finishExam();
         return;
       }
 
@@ -296,27 +302,35 @@ function runContestMulti(exam) {
       const k = knowledgeMap()[topic];
       const topicName = { dp: "DP", nt: "数论", graph: "图论", ds: "数据结构", string: "字符串" }[topic];
       const tiers = buildContestTiers();
-      const tierSummary = tiers.map((t) => `${t.score}/100(${t.thinkNeed}/${t.codeNeed})`).join("，");
 
       const chooseTier = () => showModal({
         title: `${exam.name} 第${idx}题（${topicName}）`,
         text: "先选目标部分分档位，再通过“思考/写代码”完成对应次数。",
-        progress: `当前总分 ${total}/${exam.problems * 100}｜本题档位(思考/代码)：${tierSummary}`,
-        options: tiers.map((t) => ({
-          label: `${t.score}/100｜思考${t.thinkNeed}｜代码${t.codeNeed}`,
-          onClick: () => runTier(t),
-        })),
+        progress: `当前总分 ${total}/${exam.problems * 100}｜全卷时间点剩余 ${examTimeLeft}`,
+        options: [
+          ...tiers.map((t) => ({
+            label: `${t.score}/100 档`,
+            onClick: () => runTier(t),
+          })),
+          {
+            label: "跳过本题",
+            onClick: () => {
+              pushLog(`第${idx}题选择跳过。`, false);
+              idx += 1;
+              stepProblem();
+            },
+          },
+        ],
       });
 
       const runTier = (tier) => {
         let thinkNow = 0;
         let codeNow = 0;
-        let timeLeft = tier.thinkNeed + tier.codeNeed + 2 + Math.floor(Math.random() * 2);
 
         const weak = k < 35;
         const shouldHideThinkNeed = weak && tier.score >= 75;
 
-        const settleProblem = (autoDone = false) => {
+        const settleProblem = (timeUp = false) => {
           const thinkOk = thinkNow >= tier.thinkNeed;
           const codeOk = codeNow >= tier.codeNeed;
 
@@ -328,7 +342,7 @@ function runContestMulti(exam) {
             return;
           }
 
-          if (autoDone || timeLeft <= 0) {
+          if (timeUp) {
             const partial = Math.max(0, Math.round(tier.score * (thinkNow + codeNow) / (tier.thinkNeed + tier.codeNeed) * 0.82));
             total += partial;
             pushLog(`第${idx}题时间结束，仅拿到 ${partial}/100。`, false);
@@ -349,23 +363,21 @@ ${tier.score}/100   ${thinkNow}/${thinkNeedText}   ${codeNow}/${tier.codeNeed}`;
           const thinkRate = Math.max(0.12, Math.min(0.96, 0.24 + k * 0.006 + state.team * 0.0012 - state.stress * 0.0021 - (tier.score >= 100 ? 0.15 : tier.score >= 75 ? 0.08 : 0)));
           const codeRate = Math.max(0.10, Math.min(0.95, 0.22 + k * 0.0062 + state.team * 0.0014 - state.stress * 0.0022 - (tier.score >= 100 ? 0.17 : tier.score >= 75 ? 0.1 : 0)));
 
-          if (timeLeft <= 0) {
+          if (examTimeLeft <= 0) {
             settleProblem(true);
             return;
           }
 
           showModal({
             title: `${exam.name} 第${idx}题｜目标 ${tier.score}/100`,
-            text: `按你说的模式（时间点有限）：
-${table}
-
-时间点剩余：${timeLeft}（每次思考/写代码都 -1）`,
-            progress: `知识点=${k}｜思考成功率≈${Math.round(thinkRate * 100)}%｜写代码成功率≈${Math.round(codeRate * 100)}%`,
+            text: `按你说的模式（全卷共享时间点）：
+${table}`,
+            progress: `全卷时间点剩余：${examTimeLeft}（思考/写代码每次都 -1）｜知识点=${k}｜思考成功率≈${Math.round(thinkRate * 100)}%｜写代码成功率≈${Math.round(codeRate * 100)}%`,
             options: [
               {
                 label: "思考（时间-1，成功才+1）",
                 onClick: () => {
-                  timeLeft -= 1;
+                  examTimeLeft -= 1;
                   if (Math.random() < thinkRate) {
                     thinkNow += 1;
                     pushLog(`第${idx}题思考成功（${thinkNow}/${tier.thinkNeed}）。`, true);
@@ -383,7 +395,7 @@ ${table}
               {
                 label: "写代码（时间-1，成功才+1）",
                 onClick: () => {
-                  timeLeft -= 1;
+                  examTimeLeft -= 1;
                   if (Math.random() < codeRate) {
                     codeNow += 1;
                     pushLog(`第${idx}题代码推进成功（${codeNow}/${tier.codeNeed}）。`, true);
@@ -399,8 +411,12 @@ ${table}
                 },
               },
               {
-                label: "更换档位",
-                onClick: chooseTier,
+                label: "跳过本题",
+                onClick: () => {
+                  pushLog(`第${idx}题选择跳过。`, false);
+                  idx += 1;
+                  stepProblem();
+                },
               },
               {
                 label: "提交本题",
