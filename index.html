@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>刘厚朴模拟器：竞赛进阶版</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="layout">
+    <aside class="sidebar">
+      <h2>角色数据</h2>
+      <section class="stats" aria-label="角色属性">
+        <div><span>周数</span><strong id="week">1</strong></div>
+        <div><span>健康</span><strong id="health">100</strong></div>
+        <div><span>精力</span><strong id="energy">100</strong></div>
+        <div><span>压力</span><strong id="stress">15</strong></div>
+        <div><span>DP</span><strong id="dp">15</strong></div>
+        <div><span>数论</span><strong id="nt">12</strong></div>
+        <div><span>图论</span><strong id="graph">14</strong></div>
+        <div><span>数据结构</span><strong id="ds">13</strong></div>
+        <div><span>字符串</span><strong id="string">13</strong></div>
+        <div><span>文化课</span><strong id="science">35</strong></div>
+        <div><span>社交</span><strong id="social">45</strong></div>
+        <div><span>家庭支持</span><strong id="family">60</strong></div>
+        <div><span>同学A关系</span><strong id="peerA">40</strong></div>
+        <div><span>同学B关系</span><strong id="peerB">40</strong></div>
+        <div><span>暗恋进度</span><strong id="crush">20</strong></div>
+        <div><span>感情阶段</span><strong id="crushStage">暗恋中</strong></div>
+        <div><span>队伍默契</span><strong id="team">40</strong></div>
+        <div><span>竞赛积分</span><strong id="score">0</strong></div>
+        <div><span>下一赛事</span><strong id="exam">第8周 CSP-S</strong></div>
+        <div><span>当前走线</span><strong id="route">均衡</strong></div>
+      </section>
+    </aside>
+
+    <section class="main-panel">
+      <header>
+        <h1>刘厚朴模拟器：竞赛进阶版</h1>
+        <p class="subtitle">数据集中在左栏；右侧专注行动、比赛与事件。</p>
+      </header>
+
+      <section class="story">
+        <h2 id="event-title">新学期开始</h2>
+        <p id="event-text">你是刘厚朴，理科生。你可以走竞赛冲刺、双线平衡、社交经营、家庭支持等多种路线。</p>
+      </section>
+
+      <section class="actions" aria-label="行动选择">
+        <h3>本周行动（每周选 1 项）</h3>
+        <div id="action-buttons"></div>
+      </section>
+
+      <section class="log-wrap">
+        <h3>成长日志</h3>
+        <ul id="log"></ul>
+      </section>
+
+      <section class="controls">
+        <button id="restart">重新开始</button>
+      </section>
+    </section>
+  </main>
+
+  <div id="modal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <h3 id="modal-title">事件</h3>
+      <p id="modal-text"></p>
+      <div id="modal-progress" class="modal-progress"></div>
+      <div id="modal-actions" class="modal-actions"></div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
